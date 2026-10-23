@@ -46,7 +46,7 @@ pub fn thousands(n: usize) -> String {
     for (i, c) in s.chars().enumerate() {
         out.push(c);
         let rem = len - i - 1;
-        if rem > 0 && rem.is_multiple_of(3) {
+        if rem > 0 && rem % 3 == 0 {
             out.push(',');
         }
     }
