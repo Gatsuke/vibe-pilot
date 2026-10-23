@@ -1,0 +1,29 @@
+[package]
+name = "vibe-pilot"
+version = "0.1.0"
+edition = "2021"
+description = "The context optimizer for AI engineers. Prune your codebase before you feed it to Cursor, Claude Code, or Windsurf."
+license = "MIT"
+repository = "https://github.com/vibe-pilot/vibe-pilot"
+homepage = "https://vibe-pilot.dev"
+readme = "README.md"
+keywords = ["ai", "context", "llm", "claude", "cursor"]
+categories = ["command-line-utilities", "development-tools"]
+
+# One binary, one command: `vp`
+[[bin]]
+name = "vp"
+path = "src/main.rs"
+
+[lib]
+name = "vibe_pilot"
+path = "src/lib.rs"
+
+# Zero runtime dependencies. That is the point.
+[dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+codegen-units = 1
