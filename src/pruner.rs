@@ -177,7 +177,14 @@ mod tests {
 
     #[test]
     fn truncates() {
-        let src: String = (0..500).map(|i| format!("let v{} = {};\n", i, i)).collect();
+        let mut src = String::new();
+        for i in 0..500 {
+            src.push_str("let v");
+            src.push_str(&i.to_string());
+            src.push_str(" = ");
+            src.push_str(&i.to_string());
+            src.push_str(";\n");
+        }
         let out = prune(&src, "rust", false, 100);
         assert!(out.contains("[vibe-pilot: 400 more lines truncated]"));
         assert!(out.lines().count() <= 101);
