@@ -181,6 +181,12 @@ fn generate(cli: &Cli, root: &std::path::Path) -> Result<ExitCode, String> {
     let opts = build_options(cli, root)?;
     let t0 = std::time::Instant::now();
     let mut scan = pipeline::scan(root, &opts);
+    if cli.cmd == Cmd::Diff && scan.git.is_none() {
+        eprintln!(
+            "vp: {} is not a git repo — diff falls back to a full prune",
+            root.display()
+        );
+    }
     let emitted = pipeline::emit(&mut scan, &opts);
     let wall = t0.elapsed().as_millis();
 

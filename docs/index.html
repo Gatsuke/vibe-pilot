@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vibe-pilot · the context optimizer for AI engineers</title>
+<meta name="description" content="Stop paying the context tax. vibe-pilot prunes your codebase into a hyper-focused .context file before you feed it to Cursor, Claude Code, or Windsurf. Zero dependencies, 15ms scans, MCP native.">
+<meta property="og:title" content="vibe-pilot · stop paying the context tax">
+<meta property="og:description" content="The context optimizer for AI engineers. Cut 88%+ of tokens from your AI prompts.">
+<meta property="og:image" content="https://vibe-pilot.dev/assets/og-banner.png">
+<meta property="og:type" content="website">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"> <!-- taste-skill-ignore: mono loads only for real terminal fragments below -->
+<style>
+  :root {
+    --bg: #0A0F0D;
+    --surface: #101914;
+    --stage: #0E2E1F;
+    --ink: #E9FFF4;
+    --muted: #8FB4A3;
+    --accent: #3DFFA2;
+    --accent-ink: #0A0F0D;
+    --amber: #FFB454;
+    --line: #1E3A2D;
+    --mono: "JetBrains Mono", "Sarasa Mono SC", ui-monospace, monospace; /* taste-skill-ignore: interface face for data-ui terminal fragments only */
+    --sans: "Bricolage Grotesque", "Noto Sans SC", system-ui, sans-serif;
+    --step-small: clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem);
+    --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+    --step-lead: clamp(1.375rem, 1.1rem + 0.9vw, 1.75rem);
+    --step-head: clamp(3.25rem, 5.2vw, 5rem);
+    --margin: 40px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: var(--step-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+  code { font-family: var(--mono); }
+  a { color: inherit; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 var(--margin); }
+
+  /* ---- nav ---- */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px var(--margin);
+    font-size: 15px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+  }
+  .wordmark { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600; font-size: 17px; letter-spacing: -0.02em; }
+  .wordmark img { width: 30px; height: 30px; }
+  .navlinks { display: flex; gap: 28px; }
+  .navlinks a { text-decoration: none; color: var(--muted); }
+  .navlinks a:hover, .navlinks a:focus-visible { color: var(--accent); }
+  .navlinks .star { color: var(--ink); }
+  .navlinks .star:hover { color: var(--accent); }
+
+  /* ---- hero ---- */
+  .hero { position: relative; padding-top: 150px; }
+  .hero-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; }
+  h1 {
+    grid-column: 1 / 8;
+    font-size: var(--step-head);
+    font-weight: 600;
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+    font-optical-sizing: auto;
+  }
+  h1 .tax { color: var(--accent); }
+  .hero-sub {
+    grid-column: 1 / 6;
+    margin-top: 28px;
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    color: var(--ink);
+    max-width: 42ch;
+  }
+  .hero-sub b { color: var(--amber); font-weight: 500; }
+  .hero-cta {
+    grid-column: 1 / 6;
+    margin-top: 40px;
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-block;
+    background: var(--accent); color: var(--accent-ink);
+    font-family: var(--sans); font-weight: 600; font-size: 17px;
+    padding: 15px 26px; text-decoration: none; border: none;
+    cursor: pointer; border-radius: 0;
+  }
+  .btn:hover { background: #7FFFC0; }
+  .btn:active { transform: translateY(1px); }
+  .btn-ghost {
+    background: var(--surface); color: var(--ink);
+  }
+  .btn-ghost:hover { background: #1A2B22; color: var(--accent); }
+  .hero-meta { grid-column: 1 / 7; margin-top: 22px; font-size: 15px; color: var(--muted); max-width: 66ch; }
+
+  /* the shaped stage */
+  .stage {
+    position: absolute;
+    top: 38%; right: 0; bottom: 0;
+    width: 62%;
+    background: var(--stage);
+    clip-path: polygon(120px 0, 100% 0, 100% 100%, 0 100%);
+  }
+  .stage .fragment-holder { position: absolute; top: 48px; left: 148px; width: 640px; max-width: calc(100% - 24px); }
+  .hero-space { height: 520px; }
+
+  /* ---- terminal fragments (the product's real interface) ---- */
+  .term { background: #0D1512; border: 1.5px solid var(--line); font-family: var(--mono); font-size: 15px; line-height: 1.66; } /* taste-skill-ignore: real terminal fragment (data-ui) */
+  .termbar { display: flex; align-items: center; gap: 8px; padding: 11px 16px; border-bottom: 1.5px solid var(--line); }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .dot.r { background: #E5484D; } .dot.y { background: var(--amber); } .dot.g { background: var(--accent); }
+  .termtitle { margin-left: 8px; color: var(--muted); font-size: 15px; font-family: var(--sans); }
+  .termbody { padding: 20px 22px 30px; white-space: pre; overflow-x: auto; }
+  .t-dim { color: var(--muted); } .t-grn { color: var(--accent); } .t-amb { color: var(--amber); } .t-wht { color: var(--ink); }
+  .vbar { display: inline-block; height: 10px; background: #2E8F63; vertical-align: baseline; }
+  .vbar.anim { width: 0; transition: width 1.1s cubic-bezier(.2,.7,.2,1); }
+  .count-anim { font-variant-numeric: tabular-nums; }
+
+  /* ---- sections ---- */
+  section { position: relative; }
+  .section-pad { padding: 110px 0; }
+
+  /* intro: lead line over four columns */
+  .lead {
+    font-size: clamp(1.375rem, 2.2vw, 2rem);
+    font-weight: 400;
+    line-height: 1.28;
+    letter-spacing: -0.01em;
+    max-width: 34ch;
+  }
+  .lead b { font-weight: 600; }
+  .cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-top: 72px; }
+  .col { font-size: 15px; line-height: 1.55; color: var(--ink); }
+  .col b { color: var(--accent); font-weight: 600; }
+
+  /* features: the giant command list */
+  .features { background: var(--surface); }
+  .cmd-search {
+    display: block; width: 100%;
+    background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: clamp(1.75rem, 3vw, 2.75rem);
+    font-weight: 500; padding: 0.55em 0.7em; border: none; border-radius: 0;
+    margin-bottom: 56px;
+  }
+  .cmd-search::placeholder { color: var(--muted); }
+  .cmd-search:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .cmd-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 20px;
+    padding: 10px 16px; margin-left: -16px; margin-right: -16px;
+    font-weight: 500; font-size: clamp(2.25rem, 4.6vw, 4.75rem);
+    line-height: 1.05; letter-spacing: -0.02em; cursor: pointer;
+    border: none; background: none; color: var(--ink); width: calc(100% + 32px);
+    text-align: left; font-family: var(--sans);
+  }
+  .cmd-row .keys { display: flex; gap: 6px; flex: none; }
+  .keycap {
+    font-family: var(--sans); /* real OS keycaps are sans */ font-size: 15px; font-weight: 700;
+    background: var(--bg); color: var(--muted);
+    width: 1.6em; height: 1.6em; display: flex; align-items: center; justify-content: center;
+  }
+  .cmd-row.sel { background: var(--accent); color: var(--accent-ink); }
+  .cmd-row.sel .keycap { background: rgba(10,15,13,.18); color: var(--accent-ink); }
+  .cmd-desc {
+    max-height: 0; overflow: hidden; transition: max-height .3s ease;
+    font-size: 17px; color: var(--ink); padding: 0 16px; max-width: 640px;
+  }
+  .cmd-row.sel + .cmd-desc, .cmd-row.open + .cmd-desc { max-height: 120px; padding-bottom: 18px; }
+  .cmd-row.sel + .cmd-desc { color: var(--accent-ink); background: var(--accent); }
+  .cmd-row.open + .cmd-desc { background: var(--bg); }
+  .cmd-empty { display: none; padding: 40px 0; color: var(--muted); font-size: 20px; }
+
+  /* how it works: pinned fragment */
+  .how-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; }
+  .how-left { grid-column: 1 / 6; }
+  .how-h { font-size: clamp(1.75rem, 2.6vw, 2.5rem); font-weight: 600; letter-spacing: -0.02em; padding-bottom: 48px; }
+  .how-right { grid-column: 7 / 13; }
+  .how-stage { position: sticky; top: 14vh; }
+  .how-stage .term { font-size: 15px; }
+  .step { min-height: 72vh; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+  .step h3 { font-size: clamp(1.75rem, 2.2vw, 2rem); font-weight: 600; line-height: 1.15; letter-spacing: -0.02em; color: var(--muted); transition: color .3s; }
+  .step p { font-size: 17px; color: var(--muted); transition: color .3s; max-width: 40ch; }
+  .step.on h3 { color: var(--ink); }
+  .step.on p { color: var(--ink); }
+    /* step headings: one face, one colour */
+  /* fragment states */
+  .fstate { display: none; }
+  pre.termbody .fstate.on { display: block; }
+  .hl-grn { color: var(--accent); }
+  .hl-amb { color: var(--amber); }
+  .hl-dim { color: var(--muted); }
+  .strike { text-decoration: line-through; text-decoration-color: var(--amber); }
+
+  /* stats: calculator on a black field */
+  .stats { background: #000; }
+  .stats h2, .features-h, .faq-h {
+    font-size: clamp(1.75rem, 2.6vw, 2.5rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1;
+  }
+  .calc-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; margin-top: 56px; }
+  .calc-controls { grid-column: 1 / 6; display: flex; flex-direction: column; gap: 36px; }
+  .calc-out { grid-column: 7 / 13; align-self: start; padding-top: 8px; }
+  .ctl label { display: flex; justify-content: space-between; font-size: 15px; color: var(--muted); margin-bottom: 12px; }
+  .ctl label output { color: var(--ink); font-size: 15px; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); height: 28px; cursor: pointer; }
+  .profile-chips { display: flex; gap: 10px; flex-wrap: wrap; }
+  .chip {
+    font-family: var(--sans); font-size: 15px; padding: 9px 16px;
+    background: var(--bg); color: var(--muted); border: 1.5px solid var(--line); cursor: pointer;
+  }
+  .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+  .model-chips { display: flex; gap: 10px; flex-wrap: wrap; }
+  .bigfig { font-size: clamp(3.5rem, 7.5vw, 7rem); font-weight: 600; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; color: var(--accent); }
+  .bigfig-label { font-size: 17px; color: var(--ink); margin-top: 18px; max-width: 44ch; }
+  .bigfig-sub { margin-top: 26px; font-size: 17px; color: var(--muted); line-height: 1.9; max-width: 56ch; font-variant-numeric: tabular-nums; }
+    .bench-table { margin-top: 96px; width: 100%; border-collapse: collapse; font-size: 16.5px; }
+  .bench-table th { text-align: left; font-weight: 500; color: var(--muted); padding: 12px 16px 12px 0; font-size: 15px; }
+  .bench-table td { padding: 13px 16px 13px 0; font-variant-numeric: tabular-nums; }
+  .bench-table td.tok { font-family: var(--mono); font-size: 15px; } /* taste-skill-ignore: literal vp output */
+  .bench-table .red { color: var(--accent); font-weight: 600; }
+  .bench-table tr.raw td { color: var(--muted); }
+  .bench-note { margin-top: 20px; font-size: 15px; color: var(--muted); max-width: 70ch; }
+  .demo-shot { margin-top: 72px; }
+  .demo-shot img { width: 100%; max-width: 920px; height: auto; display: block; }
+  .demo-shot figcaption { font-size: 15px; color: var(--muted); margin-top: 14px; max-width: 66ch; }
+  .bench-note a { color: var(--muted); }
+
+  /* cockpit band */
+  .cockpit { padding: 0; }
+  .cockpit-fig img { width: 100%; height: 520px; object-fit: cover; display: block; }
+  .cockpit-cap { background: var(--surface); padding: 34px var(--margin); }
+  .cockpit-cap p:first-child { font-size: clamp(1.375rem, 2.2vw, 2rem); line-height: 1.3; max-width: 62ch; }
+  .cockpit-cap b { color: var(--accent); font-weight: 600; }
+  .cockpit-cap .credit { margin-top: 14px; font-size: 15px; color: var(--muted); }
+
+  /* faq */
+  .faq-item { background: var(--surface); margin-bottom: 14px; }
+  .faq-item summary {
+    list-style: none; cursor: pointer; padding: 26px 28px;
+    font-size: clamp(1.125rem, 1.6vw, 1.375rem); font-weight: 500; letter-spacing: -0.01em;
+    display: flex; justify-content: space-between; align-items: center; gap: 18px;
+  }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item summary .pm { font-family: var(--sans); color: var(--accent); font-size: 15px; flex: none; }
+  .faq-item[open] summary .pm { color: var(--amber); font-weight: 700; }
+  .faq-item .faq-a { padding: 0 28px 26px; color: var(--ink); max-width: 660px; font-size: 17px; line-height: 1.6; }
+  .faq-item .faq-a a { color: var(--accent); }
+
+  /* cta: the first step, already open, on the accent field */
+  .cta { background: var(--accent); color: var(--accent-ink); }
+  .cta h2 { font-size: clamp(2.25rem, 4vw, 3.5rem); font-weight: 600; letter-spacing: -0.03em; line-height: 1.05; max-width: 16ch; }
+  .cta .cta-line { margin-top: 44px; font-family: var(--mono); /* taste-skill-ignore: real shell line */ font-size: clamp(1rem, 1.8vw, 1.375rem); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .cta .dollar { color: #0E3A26; font-weight: 700; }
+  .cta code { font-size: inherit; }
+  .copybtn {
+    font-family: var(--sans); font-weight: 600; font-size: 15px;
+    background: var(--accent-ink); color: var(--accent);
+    border: none; padding: 10px 18px; cursor: pointer; border-radius: 0;
+  }
+  .copybtn:hover { background: #14251D; }
+  .cta .cta-sub { margin-top: 18px; font-size: 15px; color: #0E3A26; max-width: 66ch; }
+
+  /* footer: single quiet line + full-width name */
+  footer { padding: 90px 0 40px; }
+  .footer-name {
+    font-weight: 600; font-size: clamp(3.5rem, 12.5vw, 11.5rem);
+    letter-spacing: -0.04em; line-height: 0.95; white-space: nowrap;
+  }
+  .footer-name .hy { color: var(--line); }
+  .footer-line { margin-top: 36px; display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; font-size: 15px; color: var(--muted); }
+
+  /* ---- motion ---- */
+  .rise { opacity: 0; transform: translateY(22px); transition: opacity .6s ease, transform .6s ease; }
+  .rise.in { opacity: 1; transform: none; }
+  .d1 { transition-delay: 60ms; } .d2 { transition-delay: 120ms; } .d3 { transition-delay: 180ms; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .rise { opacity: 1; transform: none; transition: none; }
+    .vbar.anim { transition: none; }
+  }
+
+  /* ---- phone ---- */
+  @media (max-width: 900px) {
+    :root { --margin: 20px; }
+    .navlinks { display: none; }
+    .hero { padding-top: 100px; }
+    h1 { grid-column: 1 / -1; }
+    .hero-sub, .hero-cta, .hero-meta { grid-column: 1 / -1; }
+    .stage { position: relative; top: auto; width: 100%; clip-path: polygon(72px 0, 100% 0, 100% 100%, 0 100%); margin-top: 48px; }
+    .stage .fragment-holder { position: relative; top: auto; left: auto; padding: 32px 16px; width: 100%; }
+    .hero-space { height: 0; }
+    .cols { grid-template-columns: 1fr; gap: 28px; }
+    .how-grid { display: block; }
+    .how-stage { position: sticky; top: 56px; z-index: 10; background: var(--bg); padding: 12px 0; }
+    .how-stage .term { font-size: 12px; }
+    .step { min-height: 62svh; }
+    .calc-controls, .calc-out { grid-column: 1 / -1; }
+    .bigfig { font-size: 17vw; }
+    .footer-name { white-space: normal; word-break: break-all; }
+    .bench-table { font-size: 14px; display: block; overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="wordmark" href="#top"><img src="assets/logo.svg" alt=""> vibe-pilot</a>
+  <div class="navlinks">
+    <a href="#commands">commands</a>
+    <a href="#math">the math</a>
+    <a href="#how">how it works</a>
+    <a href="#faq">faq</a>
+    <a class="star" href="https://github.com/vibe-pilot/vibe-pilot">github</a>
+  </div>
+</nav>
+
+<!-- ============ HERO: fragment on a shaped stage ============ -->
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <h1 class="rise">Stop paying<br>the <span class="tax">context tax.</span></h1>
+    <p class="hero-sub rise d1">Every prompt re-ships your repo to a model that bills by the token. vibe-pilot prunes it to a ranked <b>.context</b> file first, for a <b>−88.7%</b> receipt you can read in 15&nbsp;ms.</p>
+    <div class="hero-cta rise d2">
+      <a class="btn" href="#install">Install in seconds</a>
+      <a class="btn btn-ghost" href="https://github.com/vibe-pilot/vibe-pilot">Source on GitHub</a>
+    </div>
+    <p class="hero-meta rise d3">zero dependencies · rust · works with cursor, claude code, windsurf, aider · mcp native</p>
+  </div>
+  <div class="stage">
+    <div class="fragment-holder">
+      <div class="term" data-ui>
+        <div class="termbar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="termtitle">vp report · legacy-shop</span></div>
+        <pre class="termbody"><span class="t-dim">  scan </span> <span class="t-wht">231 files · 17.3k LOC</span>
+<span class="t-dim">  raw  </span> <span class="t-wht count-anim" id="hero-raw">183,542</span> <span class="t-wht">tok · </span><span class="t-amb">$0.37 / prompt</span>
+
+<span class="t-wht">  profile projections</span>
+<span class="t-grn">  lean</span>    <span class="t-wht">4,786 tok</span>  <span class="t-grn">-97.4%</span>  <span class="vbar anim" data-w="164"></span>
+<span class="t-grn">  cursor</span> <span class="t-wht">20,791 tok</span> <span class="t-grn">-88.7%</span> <span class="vbar anim" data-w="149"></span>
+<span class="t-grn">  claude</span> <span class="t-wht">43,409 tok</span> <span class="t-grn">-76.3%</span> <span class="vbar anim" data-w="128"></span>
+
+<span class="t-dim">  105,557 tok  package-lock.json - skipped</span>
+<span class="t-dim">  secrets never read: .env</span>
+<span class="t-dim">  wall 15ms · zero dependencies</span></pre>
+      </div>
+    </div>
+  </div>
+  <div class="hero-space"></div>
+</header>
+<!-- ============ INTRO: lead line over four columns ============ -->
+<section class="section-pad">
+  <div class="wrap">
+    <p class="lead rise">The lockfile never fixed a bug. <b>vibe-pilot prices your prompt, then flies the model a lean, ranked cut.</b></p>
+    <div class="cols">
+      <p class="col rise"><b>The tax.</b> A single package-lock.json is 100k+ tokens. Generated API clients, vendor trees, dead boilerplate: pasted into every prompt, billed on every request, and quietly pushing your codebase out of the context window until the model forgets it exists.</p>
+      <p class="col rise d1"><b>The cut.</b> Six profiles from an 8k skeleton to the full window. Lockfiles, generated code and binaries never make it in. Comments survive unless you say otherwise, and secrets are never read. Not one byte.</p>
+      <p class="col rise d2"><b>The receipt.</b> Before anything is written, vp prints the bill: raw tokens, cost per prompt on current model pricing, per-profile projections, and every skip with its reason. No guessing what the context costs.</p>
+      <p class="col rise d3"><b>The agent.</b> vp runs as an MCP server, so Claude Code and Cursor call it themselves: vp_context before a big change, vp_diff between prompts. The context stays lean without you thinking about it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES: the giant command list ============ -->
+<section class="features section-pad" id="commands">
+  <div class="wrap">
+    <input class="cmd-search rise" type="text" placeholder="Find a command" aria-label="Find a command" data-ui>
+    <div id="cmdlist" data-ui>
+      <div class="cmd-row" data-cmd="report"><span>vp report</span><span class="keys"><span class="keycap">R</span></span></div>
+      <div class="cmd-desc">Token + cost analysis: per-profile projections, biggest token sinks, secrets spotted. JSON for machines.</div>
+      <div class="cmd-row" data-cmd="prune"><span>vp prune</span><span class="keys"><span class="keycap">P</span></span></div>
+      <div class="cmd-desc">Write a pruned .context file for your assistant. Profiles: lean · cursor · windsurf · aider · claude · full.</div>
+      <div class="cmd-row" data-cmd="context"><span>vp context</span><span class="keys"><span class="keycap">C</span></span></div>
+      <div class="cmd-desc">Task-focused context: “vp context fix the login bug” ranks the repo around what you're about to build.</div>
+      <div class="cmd-row" data-cmd="diff"><span>vp diff</span><span class="keys"><span class="keycap">D</span></span></div>
+      <div class="cmd-desc">Git-aware: only what changed vs HEAD, the between-prompts refresh. Untracked files included.</div>
+      <div class="cmd-row" data-cmd="mcp"><span>vp mcp</span><span class="keys"><span class="keycap">M</span></span></div>
+      <div class="cmd-desc">Run as an MCP stdio server. claude mcp add vibe-pilot -- vp mcp, and your agent calls the tools itself.</div>
+      <div class="cmd-row" data-cmd="init"><span>vp init</span><span class="keys"><span class="keycap">I</span></span></div>
+      <div class="cmd-desc">Write a vibe-pilot.toml: default profile, cost model, extra ignores, per-profile budget overrides.</div>
+      <div class="cmd-row" data-cmd="profiles"><span>vp profiles</span><span class="keys"><span class="keycap">L</span></span></div>
+      <div class="cmd-desc">List the built-in budgets and what each one keeps: comments, tests, docs.</div>
+      <p class="cmd-empty" hidden>No such command, but there are only six. That's the point.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS: pinned fragment, changing state ============ -->
+<section class="section-pad" id="how">
+  <div class="wrap how-grid">
+    <div class="how-left">
+      <h2 class="how-h rise">The flight plan.</h2>
+      <div class="step" data-state="0">
+        <h3>Rank <span class="num">what matters.</span></h3>
+        <p>Files you touched this week outrank files you forgot in 2023. Task terms, git recency, import centrality and entry-point proximity. A public, boring formula, not magic.</p>
+      </div>
+      <div class="step" data-state="1">
+        <h3>Cut <span class="num">what doesn't.</span></h3>
+        <p>Lockfiles and generated code are counted, priced, and skipped. Boilerplate comments collapse. Oversized files truncate with a visible marker. Nothing changes meaning.</p>
+      </div>
+      <div class="step" data-state="2">
+        <h3>Feed <span class="num">the agent.</span></h3>
+        <p>One markdown file: the receipt, a scored map of every file in the repo, and the bodies of the winners. The agent can ask for anything on the map by path.</p>
+      </div>
+    </div>
+    <div class="how-right">
+      <div class="how-stage">
+        <div class="term" data-ui>
+          <div class="termbar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="termtitle">.context · legacy-shop</span></div>
+          <pre class="termbody"><span class="fstate on" data-fs="0"><span class="t-dim">## map</span>
+<span class="hl-amb">- `src/auth/session.ts` · source · 81 tok</span>
+   <span class="hl-grn">score 4.8 · task: session, refresh</span>
+- `src/index.ts` · source · 50 tok · score 3.2
+- `CLAUDE.md` · rules · 18 tok · score 3.2
+<span class="hl-dim">- `src/lib/cart37.ts` · source · 189 tok</span>
+<span class="hl-dim">- `src/lib/cart38.ts` · source · 189 tok</span>
+<span class="hl-dim">- `tests/cart12.test.ts` · test · 96 tok</span>
+<span class="hl-dim">  ... 224 more files, each with a score</span>
+
+<span class="t-dim">score = 3.0·task + 2.0·recency</span>
+<span class="t-dim">       + 1.5·imports + 1.0·proximity</span></span>
+<span class="fstate" data-fs="1"><span class="t-dim">## map (the cuts are priced)</span>
+- `src/auth/session.ts` · 81 tok · <span class="hl-grn">included</span>
+<span class="strike">- `package-lock.json` · 105,557 tok</span>
+<span class="hl-amb">  lockfile - always skipped</span>
+<span class="strike">- `src/generated/api.ts` · 39,056 tok</span>
+<span class="hl-amb">  generated - map only</span>
+<span class="strike">- `.env` · secret - never read</span>
+
+<span class="t-dim">## files - src/auth/session.ts</span>
+<span class="hl-grn">// session handling - kept: doc comments</span>
+export function refresh(s: Session) {
+  <span class="hl-dim">// inlined cache check</span>
+  return rotate(s.token);
+}
+
+<span class="t-dim">comments stripped only in --lean</span></span>
+<span class="fstate" data-fs="2"><span class="t-dim">## stats</span>
+| files      | 102 of 232 (44%) |
+| tokens     | 20,807 <span class="hl-grn">(raw 227,736 · -90.9%)</span>
+| cost/prompt| <span class="hl-grn">$0.0416</span> · was $0.4555
+
+<span class="t-dim">## map</span>
+<span class="hl-grn">- every file, with its score</span>
+<span class="hl-dim">  ask for any of them by path</span>
+
+<span class="t-dim">$ claude mcp add vibe-pilot -- vp mcp</span>
+<span class="hl-grn">  ok - agent now calls vp_context itself</span></span></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE GLASS COCKPIT ============ -->
+<section class="cockpit">
+  <figure class="cockpit-fig rise">
+    <img src="assets/cockpit.jpg" alt="A pilot in silhouette at the instrument panel of the Mobilis submarine" width="1920" height="1237" loading="lazy" decoding="async">
+    <figcaption class="cockpit-cap">
+      <p>Aviation had a word for this. When analog gauges gave way to six essential displays, they called it the <b>glass cockpit</b>: fewer instruments, better flying. Your context window wants the same thing.</p>
+      <p class="credit">Mobilis submarine cockpit · Andreas059 · CC0, via Wikimedia Commons</p>
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============ STATS: figure set by a slider (the live calculator) ============ -->
+<section class="stats section-pad" id="math">
+  <div class="wrap">
+    <h2 class="rise">Do your own math.</h2>
+    <div class="calc-grid">
+      <div class="calc-controls rise d1">
+        <div class="ctl">
+          <label for="tok">raw context per prompt <output id="tok-out" for="tok">183k tok</output></label>
+          <input type="range" id="tok" min="20000" max="1000000" step="1000" value="184000">
+        </div>
+        <div class="ctl">
+          <label for="ppd">prompts per day <output id="ppd-out" for="ppd">40</output></label>
+          <input type="range" id="ppd" min="5" max="200" step="5" value="40">
+        </div>
+        <div class="ctl">
+          <div class="profile-chips" role="group" aria-label="profile cut">
+            <button class="chip" data-red="0.974" aria-pressed="false">lean −97.4%</button>
+            <button class="chip" data-red="0.887" aria-pressed="true">cursor −88.7%</button>
+            <button class="chip" data-red="0.952" aria-pressed="false">aider −95.2%</button>
+            <button class="chip" data-red="0.763" aria-pressed="false">claude −76.3%</button>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="model-chips" role="group" aria-label="model input price">
+            <button class="chip" data-price="2" aria-pressed="true">sonnet 5.5 · $2/MTok</button>
+            <button class="chip" data-price="4" aria-pressed="false">opus 5.5 · $4</button>
+            <button class="chip" data-price="10" aria-pressed="false">gpt-6 astra · $10</button>
+            <button class="chip" data-price="1" aria-pressed="false">haiku 4.5 · $1</button>
+          </div>
+        </div>
+      </div>
+      <div class="calc-out rise d2">
+        <div class="bigfig" id="fig">$158</div>
+        <p class="bigfig-label">kept every month: the part of your bill that was lockfile, boilerplate and dead weight.</p>
+        <p class="bigfig-sub">per prompt: <span class="t-amb" id="per-raw">$0.366</span> → <span class="t-grn" id="per-cut">$0.041</span><br>per month before: <span class="t-amb" id="mo-raw">$445</span> · after: <span class="t-grn" id="mo-cut">$50</span></p>
+      </div>
+    </div>
+
+    <table class="bench-table rise">
+      <thead>
+        <tr><th>legacy-shop fixture · 231 files · reproducible via make bench</th><th>tokens</th><th>cut</th><th>cost / prompt</th><th>saved / month*</th></tr>
+      </thead>
+      <tbody>
+        <tr class="raw"><td>raw paste</td><td class="tok"><code>183,542</code></td><td>-</td><td>$0.3671</td><td>-</td></tr>
+        <tr><td>lean profile</td><td class="tok"><code>4,786</code></td><td class="red">−97.4%</td><td>$0.0096</td><td>$433</td></tr>
+        <tr><td>aider profile</td><td class="tok"><code>8,797</code></td><td class="red">−95.2%</td><td>$0.0176</td><td>$425</td></tr>
+        <tr><td>cursor profile</td><td class="tok"><code>20,791</code></td><td class="red">−88.7%</td><td>$0.0416</td><td>$394</td></tr>
+        <tr><td>claude profile</td><td class="tok"><code>43,409</code></td><td class="red">−76.3%</td><td>$0.0868</td><td>$340</td></tr>
+      </tbody>
+    </table>
+    <p class="bench-note">*40 prompts/day, Sonnet 5.5 input pricing, Oct 2026. Every number is real: clone the repo and run <a href="https://github.com/vibe-pilot/vibe-pilot/tree/main/bench">make bench</a>. The fixture generator is 90 lines of bash.</p>
+    <figure class="demo-shot rise">
+      <img src="assets/demo-report.png" alt="vp report output on the legacy-shop fixture: 183,542 raw tokens, $0.37 per prompt, projections down to -97.4 percent" width="920" height="685" loading="lazy">
+      <figcaption>the actual receipt, unretouched: vp report on the fixture above</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ FAQ: accordion of filled tiles ============ -->
+<section class="section-pad" id="faq">
+  <div class="wrap">
+    <h2 class="faq-h rise">Fair questions.</h2>
+    <div style="margin-top:56px">
+      <details class="faq-item rise">
+        <summary>Is my code uploaded?<span class="pm">+</span></summary>
+        <p class="faq-a">No. vibe-pilot is a local binary with zero network code and zero dependencies. It reads files, writes one <code>.context</code> file, and prints numbers. There is no telemetry, no account, no server. The whole binary is small enough to read in an afternoon.</p>
+      </details>
+      <details class="faq-item rise">
+        <summary>How accurate is the estimate?<span class="pm">+</span></summary>
+        <p class="faq-a">Code tokenizes at roughly 3.7 characters per token across current GPT and Claude tokenizers, measured within about 10% of tiktoken on real codebases. The report is a receipt, not an invoice, and <code>--price</code> lets you plug in exact rates when prices move.</p>
+      </details>
+      <details class="faq-item rise">
+        <summary>Doesn't caching solve this?<span class="pm">+</span></summary>
+        <p class="faq-a">They stack. Caching discounts <em>repeated</em> input; vibe-pilot shrinks the input <em>before</em> it's ever sent. A cached 183k-token prefix still costs ~$0.037 per request on Sonnet 5.5; the cursor-profile context costs less than that on its first request, and it caches for less too.</p>
+      </details>
+      <details class="faq-item rise">
+        <summary>Why not .gitignore or repomix?<span class="pm">+</span></summary>
+        <p class="faq-a">Packers pack; vibe-pilot prunes. .gitignore can't rank files by what you're building, strip boilerplate, or tell you what anything costs. Packers concatenate whatever isn't ignored. vibe-pilot scores every file (task, git recency, imports), enforces a token budget, and hands you an itemized receipt, then keeps every excluded file visible in the map so nothing is hidden.</p>
+      </details>
+      <details class="faq-item rise">
+        <summary>Which assistants does it work with?<span class="pm">+</span></summary>
+        <p class="faq-a">Anything that can read a file: Claude Code, Cursor, Windsurf, Aider, Codex CLI, or a raw curl. For Claude Code and Cursor there's MCP: <code>claude mcp add vibe-pilot -- vp mcp</code>. Your agent calls vp_prune, vp_context and vp_diff itself.</p>
+      </details>
+      <details class="faq-item rise">
+        <summary>What will it never do?<span class="pm">+</span></summary>
+        <p class="faq-a">It will never read a secret. <code>.env</code>, keys, certificates are detected by name and skipped before a byte touches memory. It will never delete or modify your files; it writes exactly one new file. And it will never change the meaning of your code: comment stripping is full-line only, lint directives survive, and the test suite enforces it.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA: first step, already open ============ -->
+<section class="cta section-pad" id="install">
+  <div class="wrap">
+    <h2 class="rise">Thirty seconds to your first receipt.</h2>
+    <div class="cta-line rise d1">
+      <code><b class="dollar">$ </b>cargo install vibe-pilot</code>
+      <button class="copybtn" data-copy="cargo install vibe-pilot">copy</button>
+    </div>
+    <div class="cta-line rise d2" style="font-size:15px">
+      <code><b class="dollar">$ </b>vp report</code>
+      <button class="copybtn" data-copy="vp report">copy</button>
+    </div>
+    <p class="cta-sub" style="margin-top:6px">then read your bill</p>
+    <p class="cta-sub rise d3">zero dependencies, so it compiles in seconds · macOS, Linux, Windows · MIT</p>
+  </div>
+</section>
+
+<!-- ============ FOOTER: the name returns ============ -->
+<footer>
+  <div class="wrap">
+    <div class="footer-name rise">vibe<span class="hy">-</span>pilot</div>
+    <div class="footer-line">
+      <span>MIT · zero dependencies · built for the agent era · cockpit photo: Andreas059, CC0</span>
+      <span><a href="https://github.com/vibe-pilot/vibe-pilot">github</a> · <a href="https://github.com/vibe-pilot/vibe-pilot/blob/main/docs/CONTEXT-SPEC.md">.context spec</a> · <a href="https://crates.io/crates/vibe-pilot">crates.io</a></span>
+    </div>
+  </div>
+</footer>
+<script>
+(function () {
+  "use strict";
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---- entrance staggers ---- */
+  var obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add("in"); obs.unobserve(e.target); }
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll(".rise").forEach(function (el) { obs.observe(el); });
+
+  /* ---- hero: bars grow + counter ---- */
+  window.addEventListener("load", function () {
+    document.querySelectorAll(".vbar.anim").forEach(function (b, i) {
+      setTimeout(function () { b.style.width = b.getAttribute("data-w") + "px"; }, 350 + i * 140);
+    });
+    var raw = document.getElementById("hero-raw");
+    if (raw && !reduceMotion) {
+      var start = 3200, end = 183542, t0 = null;
+      function tick(ts) {
+        if (!t0) t0 = ts;
+        var p = Math.min(1, (ts - t0) / 1300);
+        var eased = 1 - Math.pow(1 - p, 3);
+        raw.textContent = Math.round(start + (end - start) * eased).toLocaleString("en-US");
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      raw.textContent = start.toLocaleString("en-US");
+      requestAnimationFrame(tick);
+    }
+  });
+
+  /* ---- giant command list: filter + select ---- */
+  var search = document.querySelector(".cmd-search");
+  var rows = Array.prototype.slice.call(document.querySelectorAll(".cmd-row"));
+  var descs = Array.prototype.slice.call(document.querySelectorAll(".cmd-desc"));
+  var empty = document.querySelector(".cmd-empty");
+  var selected = 0;
+  var visible = rows.slice();
+
+  function paint() {
+    rows.forEach(function (r, i) {
+      r.classList.toggle("sel", visible.indexOf(r) === selected);
+      r.classList.toggle("open", false);
+    });
+    descs.forEach(function (d) { d.style.display = ""; });
+  }
+  function filter() {
+    var q = search.value.trim().toLowerCase();
+    visible = rows.filter(function (r) {
+      return !q || r.getAttribute("data-cmd").indexOf(q) !== -1 || r.textContent.toLowerCase().indexOf(q) !== -1;
+    });
+    rows.forEach(function (r) { r.style.display = visible.indexOf(r) !== -1 ? "" : "none"; });
+    var di = 0;
+    descs.forEach(function (d) {
+      var rowVisible = rows[di] && visible.indexOf(rows[di]) !== -1;
+      d.style.display = rowVisible ? "" : "none";
+      di++;
+    });
+    empty.hidden = visible.length !== 0;
+    if (selected >= visible.length) selected = Math.max(0, visible.length - 1);
+    paint();
+  }
+  rows.forEach(function (r, i) {
+    r.addEventListener("mouseenter", function () { selected = visible.indexOf(r); paint(); });
+    r.addEventListener("click", function () { selected = visible.indexOf(r); paint(); });
+  });
+  search.addEventListener("input", filter);
+  search.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowDown") { e.preventDefault(); selected = Math.min(visible.length - 1, selected + 1); paint(); }
+    if (e.key === "ArrowUp") { e.preventDefault(); selected = Math.max(0, selected - 1); paint(); }
+  });
+  filter();
+
+  /* ---- pinned fragment: state follows the active step ---- */
+  var steps = document.querySelectorAll(".step");
+  var states = document.querySelectorAll(".fstate");
+  var stepObs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) {
+        var idx = e.target.getAttribute("data-state");
+        steps.forEach(function (s) { s.classList.remove("on"); });
+        e.target.classList.add("on");
+        states.forEach(function (f) { f.classList.toggle("on", f.getAttribute("data-fs") === idx); });
+      }
+    });
+  }, { rootMargin: "-45% 0px -45% 0px" });
+  steps.forEach(function (s) { stepObs.observe(s); });
+
+  /* ---- the live calculator ---- */
+  var tok = document.getElementById("tok"), ppd = document.getElementById("ppd");
+  var tokOut = document.getElementById("tok-out"), ppdOut = document.getElementById("ppd-out");
+  var fig = document.getElementById("fig");
+  var perRaw = document.getElementById("per-raw"), perCut = document.getElementById("per-cut");
+  var moRaw = document.getElementById("mo-raw"), moCut = document.getElementById("mo-cut");
+  var reduction = 0.887, price = 2;
+
+  function fmtMoney(v) {
+    return "$" + Math.round(v).toLocaleString("en-US");
+  }
+  function calc() {
+    var t = parseInt(tok.value, 10), p = parseInt(ppd.value, 10);
+    tokOut.textContent = (t >= 1000 ? Math.round(t / 1000) + "k tok" : t + " tok");
+    ppdOut.textContent = p;
+    var perPromptRaw = t / 1e6 * price;
+    var perPromptCut = perPromptRaw * (1 - reduction);
+    var monthRaw = perPromptRaw * p * 30.4;
+    var monthCut = perPromptCut * p * 30.4;
+    fig.textContent = fmtMoney(monthRaw - monthCut);
+    perRaw.textContent = "$" + perPromptRaw.toFixed(3);
+    perCut.textContent = "$" + perPromptCut.toFixed(3);
+    moRaw.textContent = fmtMoney(monthRaw);
+    moCut.textContent = fmtMoney(monthCut);
+  }
+  document.querySelectorAll(".profile-chips .chip").forEach(function (c) {
+    c.addEventListener("click", function () {
+      document.querySelectorAll(".profile-chips .chip").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+      c.setAttribute("aria-pressed", "true");
+      reduction = parseFloat(c.getAttribute("data-red"));
+      calc();
+    });
+  });
+  document.querySelectorAll(".model-chips .chip").forEach(function (c) {
+    c.addEventListener("click", function () {
+      document.querySelectorAll(".model-chips .chip").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+      c.setAttribute("aria-pressed", "true");
+      price = parseFloat(c.getAttribute("data-price"));
+      calc();
+    });
+  });
+  tok.addEventListener("input", calc);
+  ppd.addEventListener("input", calc);
+  calc();
+
+  /* ---- copy buttons ---- */
+  document.querySelectorAll(".copybtn").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var text = b.getAttribute("data-copy");
+      function done() { b.textContent = "copied"; setTimeout(function () { b.textContent = "copy"; }, 1400); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, done);
+      } else {
+        var ta = document.createElement("textarea");
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(ta); done();
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

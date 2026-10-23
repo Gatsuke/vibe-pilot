@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: "Sarasa"; src: local("Sarasa Mono SC"); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1280px; height: 640px; overflow: hidden; }
+  body {
+    font-family: "Sarasa Mono SC", "Sarasa", monospace;
+    background: #0A0F0D;
+    color: #E6F2EC;
+    position: relative;
+  }
+  /* faint HUD dot grid */
+  .grid {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(#14251D 1.5px, transparent 1.5px);
+    background-size: 44px 44px;
+  }
+  .wrap { position: relative; display: flex; height: 640px; padding: 68px 80px 64px 72px; gap: 72px; align-items: stretch; }
+
+  /* ---- left: identity ---- */
+  .left { flex: 1; display: flex; flex-direction: column; }
+  .brandrow { display: flex; align-items: center; gap: 26px; }
+  .brandrow img { width: 104px; height: 104px; }
+  .wordmark { font-size: 64px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; }
+  .wordmark .hy { color: #56786A; margin: 0 -7px; }
+  .tagline {
+    margin-top: 44px;
+    font-size: 35px;
+    line-height: 1.3;
+    color: #E6F2EC;
+    font-weight: 600;
+  }
+  .tagline .g { color: #3DFFA2; }
+  .sub { margin-top: 28px; font-size: 21.5px; color: #6E8F81; line-height: 1.5; }
+  .sub b { color: #FFB454; font-weight: 700; }
+  .chips { margin-top: auto; display: flex; gap: 14px; font-size: 19px; }
+  .chip {
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #1E3A2D; padding: 9px 18px; color: #8FB8A6;
+    height: 46px;
+  }
+  .chip.on { border-color: #3DFFA2; color: #3DFFA2; }
+
+  /* ---- right: terminal card ---- */
+  .right { flex: 1.02; display: flex; align-items: center; min-width: 0; }
+  .term {
+    width: 100%;
+    background: #0D1512;
+    border: 2px solid #1E3A2D;
+  }
+  .termbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 15px 20px;
+    border-bottom: 2px solid #1E3A2D;
+  }
+  .dot { width: 14px; height: 14px; border-radius: 50%; }
+  .dot.r { background: #E5484D; } .dot.y { background: #FFB454; } .dot.g { background: #3DFFA2; }
+  .termtitle { margin-left: 10px; color: #56786A; font-size: 17.5px; }
+  .termbody { padding: 24px 26px 28px; font-size: 20px; line-height: 1.66; white-space: pre; }
+  .c { color: #56786A; }
+  .g { color: #3DFFA2; }
+  .a { color: #FFB454; }
+  .w { color: #E6F2EC; }
+  /* crisp vector bars — read at any scale */
+  .bl { display: inline-block; height: 13px; background: #2E8F63; vertical-align: baseline; margin-right: 2px; }
+  .row { display: flex; align-items: center; }
+  .row .lbl { width: 118px; flex: none; }
+  .row .tok { width: 108px; flex: none; color: #E6F2EC; }
+  .row .pct { width: 82px; flex: none; color: #3DFFA2; }
+  .row .cost { color: #56786A; margin-left: 18px; }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="wrap">
+
+    <div class="left">
+      <div class="brandrow">
+        <img src="logo.svg" alt="vibe-pilot logo">
+        <div class="wordmark">vibe<span class="hy">-</span>pilot</div>
+      </div>
+      <div class="tagline">Stop paying the<br><span class="g">context tax.</span></div>
+      <div class="sub">lockfiles, generated code, boilerplate —<br><b>cut from your AI prompts.</b></div>
+      <div class="chips">
+        <div class="chip on">0 dependencies</div>
+        <div class="chip on">15 ms / scan</div>
+        <div class="chip">MCP native</div>
+        <div class="chip">Rust</div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="term" data-ui>
+        <div class="termbar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <div class="termtitle">vp report — legacy-shop</div>
+        </div>
+        <div class="termbody"><span class="c">  scan  </span> <span class="w">231 files · 17.3k LOC</span>
+<span class="c">  raw   </span> <span class="w">183,542 tok · </span><span class="a">$0.37 / prompt</span>
+
+<span class="w">  profile projections</span>
+<span class="row"><span class="lbl">  lean</span><span class="tok">4,786 tok</span><span class="pct">-97.4%</span><span class="bl" style="width:216px"></span><span class="cost">$0.0096</span></span>
+<span class="row"><span class="lbl">  cursor</span><span class="tok">20,791 tok</span><span class="pct">-88.7%</span><span class="bl" style="width:191px"></span><span class="cost">$0.0416</span></span>
+<span class="row"><span class="lbl">  claude</span><span class="tok">43,409 tok</span><span class="pct">-76.3%</span><span class="bl" style="width:164px"></span><span class="cost">$0.0868</span></span>
+
+<span class="c">  105,557 tok  package-lock.json — skipped</span>
+<span class="c">  wall 15ms · zero dependencies</span></div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

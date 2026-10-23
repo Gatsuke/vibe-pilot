@@ -46,7 +46,7 @@ COMMANDS:
     init                 create vibe-pilot.toml with sane defaults
     report               token + cost analysis of this repo (writes nothing)
     prune                write a pruned .context file for your AI assistant
-    context <task...>    task-focused .context — e.g. vp context fix the login bug
+    context [path] <task...>  task-focused .context, e.g. vp context fix the login bug
     diff                 .context with only what changed vs HEAD (git-aware)
     mcp                  run as an MCP server on stdio (Claude Code / Cursor)
     profiles             list built-in profiles
@@ -170,9 +170,23 @@ pub fn parse(args: &[String]) -> Result<Cli, String> {
         i += 1;
     }
 
-    // `vp context fix the login bug` — leftover positionals are the task
+    // `vp context [path] fix the login bug` — a leading positional that is
+    // clearly a path (starts with / ./ ../ or is . ..) is the repo path;
+    // everything else is the task.
     if cli.cmd == Cmd::Context {
-        let words: Vec<String> = positional
+        let mut words: Vec<String> = positional.clone();
+        if let Some(first) = words.first() {
+            let looks_like_path = first == "."
+                || first == ".."
+                || first.starts_with('/')
+                || first.starts_with("./")
+                || first.starts_with("../")
+                || first.ends_with('/');
+            if looks_like_path {
+                cli.path = Some(words.remove(0));
+            }
+        }
+        let words: Vec<String> = words
             .iter()
             .filter(|p| !p.starts_with('-'))
             .cloned()
@@ -223,6 +237,18 @@ mod tests {
             .collect();
         let c = parse(&args).unwrap();
         assert_eq!(c.task.as_deref(), Some("fix the login bug"));
+        assert!(c.path.is_none());
+    }
+
+    #[test]
+    fn parses_context_with_path_prefix() {
+        let args: Vec<String> = ["context", "/tmp/app", "fix", "session", "refresh"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let c = parse(&args).unwrap();
+        assert_eq!(c.path.as_deref(), Some("/tmp/app"));
+        assert_eq!(c.task.as_deref(), Some("fix session refresh"));
     }
 
     #[test]

@@ -40,17 +40,6 @@ pub fn task_terms(task: &str) -> Vec<String> {
             terms.push(t);
         }
     }
-    // also add snake/kebab pieces (login_bug -> login, bug)
-    let extras: Vec<String> = task
-        .split(['_', '-'])
-        .filter(|s| s.len() >= 3)
-        .map(|s| s.to_ascii_lowercase())
-        .collect();
-    for e in extras {
-        if !terms.contains(&e) && !STOPWORDS.contains(&e.as_str()) {
-            terms.push(e);
-        }
-    }
     terms
 }
 

@@ -311,7 +311,7 @@ pub fn report_json(
 /// Stderr one-liner after writing .context.
 pub fn emit_summary(path: &str, stats: &Stats, st: &Style) -> String {
     format!(
-        "  {} {} · {}/{} files · {} tok (raw {} · {}) · {} -> {} per prompt\n",
+        "  {} {} · {}/{} files · {} tok (raw {} · {}) · was {} -> {} per prompt\n",
         st.green("wrote"),
         st.bold(path),
         stats.files_selected,
@@ -319,8 +319,8 @@ pub fn emit_summary(path: &str, stats: &Stats, st: &Style) -> String {
         st.bright(&thousands(stats.out_tokens)),
         thousands(stats.raw_tokens),
         st.green(&pct(stats.reduction())),
-        st.green(&tokens::fmt_cost(stats.cost_out)),
         st.dim(&tokens::fmt_cost(stats.cost_raw)),
+        st.green(&tokens::fmt_cost(stats.cost_out)),
     )
 }
 
