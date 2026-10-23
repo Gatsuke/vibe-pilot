@@ -1,0 +1,45 @@
+{
+  "name": "vibe-pilot",
+  "version": "0.1.0",
+  "description": "Ship less context. The context optimizer for AI engineers — prune your codebase before you feed it to Cursor, Claude Code, or Windsurf.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gatsuke/vibe-pilot.git"
+  },
+  "homepage": "https://gatsuke.github.io/vibe-pilot",
+  "bugs": {
+    "url": "https://github.com/Gatsuke/vibe-pilot/issues"
+  },
+  "bin": {
+    "vibe-pilot": "bin/vibe-pilot.js",
+    "vp": "bin/vibe-pilot.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "files": [
+    "bin/vibe-pilot.js",
+    "scripts/postinstall.js"
+  ],
+  "keywords": [
+    "ai",
+    "context",
+    "llm",
+    "cursor",
+    "claude",
+    "claude-code",
+    "windsurf",
+    "copilot",
+    "tokens",
+    "optimizer",
+    "cli",
+    "mcp",
+    "prompt-engineering",
+    "context-window"
+  ],
+  "preferGlobal": true
+}

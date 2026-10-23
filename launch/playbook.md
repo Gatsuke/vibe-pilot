@@ -5,7 +5,8 @@ in order, with the boring mechanics spelled out.
 
 ## T-minus-1 day: pre-flight
 
-- [ ] `cargo publish` — `cargo install vibe-pilot` must work before anything goes public
+- [x] `npm publish` — `npm i -g vibe-pilot` works (prebuilt binaries for 5 platforms; downloads from the GitHub release at install time)
+- [ ] `cargo publish` — `cargo install vibe-pilot` (crates.io) is optional for v0.1.0; npm + release binaries already cover every platform
 - [ ] GitHub repo settings:
   - Description: `The context optimizer for AI engineers. Stop paying the context tax.`
   - Topics (all of them, they are search surface): `rust`, `ai-tools`, `claude`, `cursor`,

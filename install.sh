@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # vibe-pilot installer — cargo install, with a release-binary fast path.
-#   curl -fsSL https://vibe-pilot.dev/install.sh | bash
+#   curl -fsSL https://gatsuke.github.io/vibe-pilot/install.sh | bash
 set -euo pipefail
 
-REPO="vibe-pilot/vibe-pilot"
+REPO="Gatsuke/vibe-pilot"
 VERSION="${VP_VERSION:-latest}"
 
 say() { printf '\033[32m[vp]\033[0m %s\n' "$1"; }

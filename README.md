@@ -7,10 +7,10 @@
 <p align="center"><strong>The context optimizer for AI engineers.</strong></p>
 
 <p align="center">
-  <a href="https://github.com/vibe-pilot/vibe-pilot/actions/workflows/ci.yml"><img src="https://github.com/vibe-pilot/vibe-pilot/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/Gatsuke/vibe-pilot/actions/workflows/ci.yml"><img src="https://github.com/Gatsuke/vibe-pilot/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://crates.io/crates/vibe-pilot"><img src="https://img.shields.io/crates/v/vibe-pilot.svg" alt="crates.io"></a>
   <a href="https://crates.io/crates/vibe-pilot"><img src="https://img.shields.io/crates/d/vibe-pilot.svg" alt="downloads"></a>
-  <a href="https://deps.rs/repo/github/vibe-pilot/vibe-pilot"><img src="https://deps.rs/repo/github/vibe-pilot/vibe-pilot/status.svg" alt="dependencies"></a>
+  <a href="https://deps.rs/repo/github/Gatsuke/vibe-pilot"><img src="https://deps.rs/repo/github/Gatsuke/vibe-pilot/status.svg" alt="dependencies"></a>
   <img src="https://img.shields.io/badge/dependencies-0-3DFFA2" alt="zero dependencies">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT"></a>
 </p>
@@ -68,15 +68,20 @@ vibe-pilot makes the invisible bill visible, then makes it smaller.
 ## Install
 
 ```bash
-# macOS / Linux (release binary)
-curl -fsSL https://raw.githubusercontent.com/vibe-pilot/vibe-pilot/main/install.sh | bash
+# npm / npx — works everywhere Node works (prebuilt binary, no compile)
+npm i -g vibe-pilot
+
+# or the 5-second curl installer (macOS / Linux release binary)
+curl -fsSL https://raw.githubusercontent.com/Gatsuke/vibe-pilot/main/install.sh | bash
 
 # or cargo — zero dependencies means this compiles in seconds, not minutes
 cargo install vibe-pilot
 
 # or from source
-git clone https://github.com/vibe-pilot/vibe-pilot && cargo install --path vibe-pilot
+git clone https://github.com/Gatsuke/vibe-pilot && cargo install --path vibe-pilot
 ```
+
+Don't want a global install? `npx vibe-pilot report` works too. The npm package is a thin launcher: it drops the prebuilt `vp` binary for your platform (macOS arm64/x64, Linux arm64/x64, Windows x64) and otherwise adds nothing.
 
 The binary is `vp`. Thirty seconds to your first receipt:
 

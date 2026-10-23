@@ -14,7 +14,7 @@ parser, `src/walker.rs` for the gitignore engine).
 ## Setup
 
 ```bash
-git clone https://github.com/vibe-pilot/vibe-pilot
+git clone https://github.com/Gatsuke/vibe-pilot
 cd vibe-pilot
 cargo test          # 41 tests, runs in under a second
 cargo clippy --all-targets -- -D warnings

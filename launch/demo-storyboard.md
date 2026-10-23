@@ -22,7 +22,7 @@ record it, don't fake it.
 | 4 | 0:11–0:16 | second command | `$ vp context fix the session refresh bug` typed | — |
 | 5 | 0:16–0:22 | the write summary | `wrote .context · 102/232 files · 20,807 tok (raw 227,736 · -90.9%) · was $0.4555 → $0.0416 per prompt` | "was $0.45 → now $0.04" |
 | 6 | 0:22–0:27 | the file | `$ head -40 .context` — stats table, task focus with `src/auth/session.ts`, map with scores | "the agent sees the map — and asks for what it needs" |
-| 7 | 0:27–0:30 | end card | logo + `vibe-pilot` + `cargo install vibe-pilot` + github URL on brand green | — |
+| 7 | 0:27–0:30 | end card | logo + `vibe-pilot` + `npm i -g vibe-pilot` + github URL on brand green | — |
 
 ## Beats that must land
 

@@ -25,7 +25,7 @@ On Opus: $592/month.
 
 vibe-pilot prunes your codebase into a hyper-focused `.context` file before it reaches Cursor / Claude Code / Windsurf.
 
-cargo install vibe-pilot
+npm i -g vibe-pilot
 vp report
 
 That's it. 15ms. Zero dependencies.
@@ -62,7 +62,7 @@ Now Claude Code / Cursor call `vp_context` before a big change and `vp_diff` bet
 
 **8/8 — ship it**
 
-github.com/vibe-pilot/vibe-pilot
+github.com/Gatsuke/vibe-pilot
 
 Every number in this thread is reproducible: `make bench` in the repo.
 
